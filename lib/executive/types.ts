@@ -1,5 +1,6 @@
 export interface ExecutiveRow {
   _id?: string;
+  category?: string;
   storeId?: string;
   poNumber?: string;
   sku?: string;

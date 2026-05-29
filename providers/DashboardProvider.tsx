@@ -73,7 +73,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     initialData: () => readOverviewCache(deferredFilters) ?? undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    placeholderData: (prev) => prev,
   });
 
   const barChartsQuery = useQuery({
@@ -89,7 +88,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     initialData: () => readBarChartsCache(deferredFilters) ?? undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    placeholderData: (prev) => prev,
     enabled: !!overviewQuery.data,
   });
 
@@ -106,7 +104,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     initialData: () => readStatusChartsCache(deferredFilters) ?? undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    placeholderData: (prev) => prev,
     enabled: !!overviewQuery.data,
   });
 

@@ -1,24 +1,24 @@
 'use client';
 
-import KeheUploadBar from '@/components/stores/kehe/KeheUploadBar';
-import KeheRiskAtRiskTable from '@/components/stores/kehe/risk/KeheRiskAtRiskTable';
-import KeheRiskCharts from '@/components/stores/kehe/risk/KeheRiskCharts';
-import KeheRiskStockStatusTable from '@/components/stores/kehe/risk/KeheRiskStockStatusTable';
+import SproutsUploadBar from '@/components/stores/sprouts/SproutsUploadBar';
+import SproutsRiskAtRiskTable from '@/components/stores/sprouts/risk/SproutsRiskAtRiskTable';
+import SproutsRiskCharts from '@/components/stores/sprouts/risk/SproutsRiskCharts';
+import SproutsRiskStockStatusTable from '@/components/stores/sprouts/risk/SproutsRiskStockStatusTable';
 import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
-import { useKehe } from '@/providers/KeheProvider';
+import { useSprouts } from '@/providers/SproutsProvider';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-export default function KeheRiskInventoryTab() {
+export default function SproutsRiskInventoryTab() {
   const queryClient = useQueryClient();
-  const { riskFilters, refresh } = useKehe();
+  const { riskFilters, refresh } = useSprouts();
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const dashboardQuery = useQuery({
-    queryKey: ['kehe-risk-dashboard', riskFilters],
-    queryFn: async () => (await api.getKeheRiskInventoryDashboard(riskFilters)).data,
+    queryKey: ['sprouts-risk-dashboard', riskFilters],
+    queryFn: async () => (await api.getSproutsRiskInventoryDashboard(riskFilters)).data,
     staleTime: 0,
   });
 
@@ -26,10 +26,10 @@ export default function KeheRiskInventoryTab() {
     setUploadMessage(null);
     setUploadError(null);
     try {
-      const res = await api.uploadKeheRiskInventory(file, options.mode);
+      const res = await api.uploadSproutsRiskInventory(file, options.mode);
       setUploadMessage(res.message || `Imported ${res.data.imported} rows`);
-      queryClient.invalidateQueries({ queryKey: ['kehe-risk-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['kehe-risk-filters'] });
+      queryClient.invalidateQueries({ queryKey: ['sprouts-risk-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['sprouts-risk-filters'] });
       refresh();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
@@ -45,9 +45,9 @@ export default function KeheRiskInventoryTab() {
         <p className="text-xs text-slate-500">
           {data?.rowCount
             ? `${formatNumber(data.rowCount)} at-risk line items`
-            : 'Upload KeHE risk export (ESN, DC, SKU, UnitsOnHandWithNoForecastDemand, etc.)'}
+            : 'Upload Sprouts risk export (ESN, DC, SKU, UnitsOnHandWithNoForecastDemand, etc.)'}
         </p>
-        <KeheUploadBar onUpload={handleUpload} disabled={loading} />
+        <SproutsUploadBar onUpload={handleUpload} disabled={loading} />
       </div>
 
       {uploadMessage && (
@@ -66,9 +66,9 @@ export default function KeheRiskInventoryTab() {
         </div>
       )}
 
-      <KeheRiskCharts data={data} loading={loading} />
-      <KeheRiskAtRiskTable data={data} loading={loading} />
-      <KeheRiskStockStatusTable data={data} loading={loading} />
+      <SproutsRiskCharts data={data} loading={loading} />
+      <SproutsRiskAtRiskTable data={data} loading={loading} />
+      <SproutsRiskStockStatusTable data={data} loading={loading} />
     </div>
   );
 }

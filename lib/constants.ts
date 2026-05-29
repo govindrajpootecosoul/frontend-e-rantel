@@ -1,6 +1,7 @@
 import type { FilterKey, FiltersState } from './types';
 
 export const FILTER_LABELS: Record<FilterKey, string> = {
+  category: 'Category',
   retailer: 'Retailer',
   location: 'Location',
   status: 'Status',
@@ -15,6 +16,7 @@ export const FILTER_LABELS: Record<FilterKey, string> = {
 };
 
 export const DEFAULT_FILTERS: FiltersState = {
+  category: 'All',
   retailer: 'All',
   location: 'All',
   status: 'All',

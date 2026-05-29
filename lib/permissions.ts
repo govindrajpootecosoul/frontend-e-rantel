@@ -31,7 +31,7 @@ export const SCREEN_GROUPS = [
     comingSoon: false,
     screens: [
       { id: 'stores_kehe' as ScreenId, label: 'KeHe' },
-      { id: 'stores_sprouts' as ScreenId, label: 'Sprouts', comingSoon: true },
+      { id: 'stores_sprouts' as ScreenId, label: 'Sprouts' },
     ],
   },
   {
@@ -59,6 +59,7 @@ const PATH_SCREEN_MAP: { prefix: string; screen: ScreenId }[] = [
   { prefix: '/po-trackers/b2b', screen: 'po_tracker_b2b' },
   { prefix: '/po-trackers/retails', screen: 'po_tracker_retails' },
   { prefix: '/stores/kehe', screen: 'stores_kehe' },
+  { prefix: '/stores/sprouts', screen: 'stores_sprouts' },
 ];
 
 /** DB uses `superadmin`; legacy `super_admin` is also accepted */
@@ -121,6 +122,7 @@ const DEFAULT_ROUTE_ORDER = [
   '/po-trackers/b2b',
   '/po-trackers/retails',
   '/stores/kehe',
+  '/stores/sprouts',
   '/admin/users',
 ] as const;
 

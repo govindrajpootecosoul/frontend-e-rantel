@@ -74,13 +74,7 @@ export default function ExecutivePage() {
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Channel Overview
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryBlock
-            label="Channel Select"
-            value={dashboard?.summary.channelSelect}
-            loading={overviewBusy}
-            accent="cyan"
-          />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <SummaryBlock
             label="Unique Distributors"
             value={dashboard?.summary.uniqueDistributors}
@@ -161,6 +155,8 @@ export default function ExecutivePage() {
             }
           }
           loading={barChartsLoading}
+          defaultPeriod="yearly"
+          periodOptions={['monthly', 'yearly']}
         />
         <GroupedBarChart
           title="Invoice Sale Amount"
@@ -172,6 +168,8 @@ export default function ExecutivePage() {
             }
           }
           loading={barChartsLoading}
+          defaultPeriod="yearly"
+          periodOptions={['monthly', 'yearly']}
         />
       </section>
 

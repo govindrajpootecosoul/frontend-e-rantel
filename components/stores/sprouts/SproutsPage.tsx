@@ -1,21 +1,21 @@
 'use client';
 
-import KeheChainStoreTab from '@/components/stores/kehe/KeheChainStoreTab';
-import KeheInventoryTab from '@/components/stores/kehe/KeheInventoryTab';
-import KeheRiskInventoryTab from '@/components/stores/kehe/KeheRiskInventoryTab';
-import { KEHE_TABS } from '@/lib/stores/kehe/constants';
-import type { KeheTabId } from '@/lib/stores/kehe/types';
-import { useKehe } from '@/providers/KeheProvider';
+import SproutsChainStoreTab from '@/components/stores/sprouts/SproutsChainStoreTab';
+import SproutsInventoryTab from '@/components/stores/sprouts/SproutsInventoryTab';
+import SproutsRiskInventoryTab from '@/components/stores/sprouts/SproutsRiskInventoryTab';
+import { SPROUTS_TABS } from '@/lib/stores/sprouts/constants';
+import type { SproutsTabId } from '@/lib/stores/sprouts/types';
+import { useSprouts } from '@/providers/SproutsProvider';
 import { RefreshCw } from 'lucide-react';
 
-export default function KehePage() {
-  const { refresh, loading, isFetching, error, totalRows, activeTab, setActiveTab } = useKehe();
+export default function SproutsPage() {
+  const { refresh, loading, isFetching, error, totalRows, activeTab, setActiveTab } = useSprouts();
 
   return (
     <div className="space-y-6 pb-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">KeHE Stores</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Sprouts Stores</h1>
           <p className="mt-1 text-sm text-slate-500">
             Chain store analytics, inventory, and risk inventory
             {totalRows > 0 && (
@@ -41,7 +41,7 @@ export default function KehePage() {
       )}
 
       <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-1">
-        {KEHE_TABS.map((tab) => {
+        {SPROUTS_TABS.map((tab) => {
           const active = activeTab === tab.id;
           return (
             <button
@@ -60,9 +60,9 @@ export default function KehePage() {
         })}
       </div>
 
-      {activeTab === 'chain-store' && <KeheChainStoreTab />}
-      {activeTab === 'inventory' && <KeheInventoryTab />}
-      {activeTab === 'risk-inventory' && <KeheRiskInventoryTab />}
+      {activeTab === 'chain-store' && <SproutsChainStoreTab />}
+      {activeTab === 'inventory' && <SproutsInventoryTab />}
+      {activeTab === 'risk-inventory' && <SproutsRiskInventoryTab />}
     </div>
   );
 }

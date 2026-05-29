@@ -1,17 +1,17 @@
 'use client';
 
 import { api } from '@/lib/api';
-import { DEFAULT_KEHE_FILTERS, DEFAULT_KEHE_RISK_FILTERS } from '@/lib/stores/kehe/constants';
-import type { KeheRiskFilterKey, KeheRiskFiltersState } from '@/lib/stores/kehe/risk-types';
-import type { KeheTabId } from '@/lib/stores/kehe/types';
+import { DEFAULT_SPROUTS_FILTERS, DEFAULT_SPROUTS_RISK_FILTERS } from '@/lib/stores/sprouts/constants';
+import type { SproutsRiskFilterKey, SproutsRiskFiltersState } from '@/lib/stores/sprouts/risk-types';
+import type { SproutsTabId } from '@/lib/stores/sprouts/types';
 import type {
-  KeheChainStoreRow,
-  KeheFilterKey,
-  KeheFiltersState,
-  KeheQuantitySummaryRow,
-  KeheRetailerSummaryRow,
-  KeheSummary,
-} from '@/lib/stores/kehe/types';
+  SproutsChainStoreRow,
+  SproutsFilterKey,
+  SproutsFiltersState,
+  SproutsQuantitySummaryRow,
+  SproutsRetailerSummaryRow,
+  SproutsSummary,
+} from '@/lib/stores/sprouts/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
@@ -22,15 +22,15 @@ import {
   type ReactNode,
 } from 'react';
 
-interface KeheContextValue {
-  filters: KeheFiltersState;
-  setFilter: (key: KeheFilterKey, value: string) => void;
+interface SproutsContextValue {
+  filters: SproutsFiltersState;
+  setFilter: (key: SproutsFilterKey, value: string) => void;
   resetFilters: () => void;
   filterOptions: Record<string, string[]>;
-  summary: KeheSummary;
-  byRetailer: KeheRetailerSummaryRow[];
-  byQuantity: KeheQuantitySummaryRow[];
-  detailRows: KeheChainStoreRow[];
+  summary: SproutsSummary;
+  byRetailer: SproutsRetailerSummaryRow[];
+  byQuantity: SproutsQuantitySummaryRow[];
+  detailRows: SproutsChainStoreRow[];
   detailPage: number;
   detailPageSize: number;
   detailTotal: number;
@@ -42,18 +42,18 @@ interface KeheContextValue {
   error: Error | null;
   refresh: () => void;
   totalRows: number;
-  activeTab: KeheTabId;
-  setActiveTab: (tab: KeheTabId) => void;
+  activeTab: SproutsTabId;
+  setActiveTab: (tab: SproutsTabId) => void;
   inventoryReportMonth: string;
   setInventoryReportMonth: (month: string) => void;
   inventoryMonthOptions: string[];
-  riskFilters: KeheRiskFiltersState;
-  setRiskFilter: (key: KeheRiskFilterKey, value: string) => void;
+  riskFilters: SproutsRiskFiltersState;
+  setRiskFilter: (key: SproutsRiskFilterKey, value: string) => void;
   resetRiskFilters: () => void;
   riskFilterOptions: Record<string, string[]>;
 }
 
-const emptySummary = (): KeheSummary => ({
+const emptySummary = (): SproutsSummary => ({
   orderedVendorCost: 0,
   shippedVendorCost: 0,
   fillRateVendorCost: 0,
@@ -64,71 +64,71 @@ const emptySummary = (): KeheSummary => ({
   rowCount: 0,
 });
 
-const KeheContext = createContext<KeheContextValue | null>(null);
+const SproutsContext = createContext<SproutsContextValue | null>(null);
 
-export function KeheProvider({ children }: { children: ReactNode }) {
+export function SproutsProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<KeheFiltersState>({ ...DEFAULT_KEHE_FILTERS });
+  const [filters, setFilters] = useState<SproutsFiltersState>({ ...DEFAULT_SPROUTS_FILTERS });
   const [detailPage, setDetailPage] = useState(1);
   const [detailPageSize, setDetailPageSize] = useState(25);
-  const [activeTab, setActiveTab] = useState<KeheTabId>('chain-store');
+  const [activeTab, setActiveTab] = useState<SproutsTabId>('chain-store');
   const [inventoryReportMonth, setInventoryReportMonth] = useState('All');
-  const [riskFilters, setRiskFilters] = useState<KeheRiskFiltersState>({
-    ...DEFAULT_KEHE_RISK_FILTERS,
+  const [riskFilters, setRiskFilters] = useState<SproutsRiskFiltersState>({
+    ...DEFAULT_SPROUTS_RISK_FILTERS,
   });
 
-  const setRiskFilter = useCallback((key: KeheRiskFilterKey, value: string) => {
+  const setRiskFilter = useCallback((key: SproutsRiskFilterKey, value: string) => {
     setRiskFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const resetRiskFilters = useCallback(() => {
-    setRiskFilters({ ...DEFAULT_KEHE_RISK_FILTERS });
+    setRiskFilters({ ...DEFAULT_SPROUTS_RISK_FILTERS });
   }, []);
 
   const inventoryFiltersQuery = useQuery({
-    queryKey: ['kehe-inventory-filters'],
-    queryFn: async () => (await api.getKeheInventoryFilters()).data,
+    queryKey: ['sprouts-inventory-filters'],
+    queryFn: async () => (await api.getSproutsInventoryFilters()).data,
     staleTime: 30_000,
   });
 
   const riskFiltersQuery = useQuery({
-    queryKey: ['kehe-risk-filters', riskFilters],
-    queryFn: async () => (await api.getKeheRiskInventoryFilters(riskFilters)).data,
+    queryKey: ['sprouts-risk-filters', riskFilters],
+    queryFn: async () => (await api.getSproutsRiskInventoryFilters(riskFilters)).data,
     staleTime: 30_000,
   });
 
-  const setFilter = useCallback((key: KeheFilterKey, value: string) => {
+  const setFilter = useCallback((key: SproutsFilterKey, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setDetailPage(1);
   }, []);
 
   const resetFilters = useCallback(() => {
-    setFilters({ ...DEFAULT_KEHE_FILTERS });
+    setFilters({ ...DEFAULT_SPROUTS_FILTERS });
     setDetailPage(1);
   }, []);
 
   const filtersQuery = useQuery({
-    queryKey: ['kehe-filters', filters],
+    queryKey: ['sprouts-filters', filters],
     queryFn: async () => {
-      const res = await api.getKeheChainStoreFilters(filters);
+      const res = await api.getSproutsChainStoreFilters(filters);
       return res.data;
     },
     staleTime: 30_000,
   });
 
   const summaryQuery = useQuery({
-    queryKey: ['kehe-summary', filters],
+    queryKey: ['sprouts-summary', filters],
     queryFn: async () => {
-      const res = await api.getKeheChainStoreSummary(filters);
+      const res = await api.getSproutsChainStoreSummary(filters);
       return res.data;
     },
     staleTime: 0,
   });
 
   const rowsQuery = useQuery({
-    queryKey: ['kehe-rows', filters, detailPage, detailPageSize],
+    queryKey: ['sprouts-rows', filters, detailPage, detailPageSize],
     queryFn: async () => {
-      const res = await api.getKeheChainStoreRows(filters, {
+      const res = await api.getSproutsChainStoreRows(filters, {
         page: detailPage,
         limit: detailPageSize,
       });
@@ -138,17 +138,17 @@ export function KeheProvider({ children }: { children: ReactNode }) {
   });
 
   const refresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['kehe-filters'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-summary'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-rows'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-inventory'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-inventory-filters'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-inventory-dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-risk-filters'] });
-    queryClient.invalidateQueries({ queryKey: ['kehe-risk-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-filters'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-rows'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-inventory'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-inventory-filters'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-inventory-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-risk-filters'] });
+    queryClient.invalidateQueries({ queryKey: ['sprouts-risk-dashboard'] });
   }, [queryClient]);
 
-  const value = useMemo<KeheContextValue>(
+  const value = useMemo<SproutsContextValue>(
     () => ({
       filters,
       setFilter,
@@ -215,11 +215,11 @@ export function KeheProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <KeheContext.Provider value={value}>{children}</KeheContext.Provider>;
+  return <SproutsContext.Provider value={value}>{children}</SproutsContext.Provider>;
 }
 
-export function useKehe() {
-  const ctx = useContext(KeheContext);
-  if (!ctx) throw new Error('useKehe must be used within KeheProvider');
+export function useSprouts() {
+  const ctx = useContext(SproutsContext);
+  if (!ctx) throw new Error('useSprouts must be used within SproutsProvider');
   return ctx;
 }

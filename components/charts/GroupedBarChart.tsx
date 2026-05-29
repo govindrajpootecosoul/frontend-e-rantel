@@ -10,6 +10,8 @@ interface GroupedBarChartProps {
   dataByPeriod: PeriodRetailerSeries;
   loading?: boolean;
   defaultPeriod?: ChartPeriod;
+  /** Period toggle options (defaults to Daily, Monthly, Yearly). */
+  periodOptions?: ChartPeriod[];
 }
 
 const COLORS = ['#22D3EE', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#60A5FA'];
@@ -25,22 +27,23 @@ export default function GroupedBarChart({
   dataByPeriod,
   loading,
   defaultPeriod = 'monthly',
+  periodOptions,
 }: GroupedBarChartProps) {
   const [period, setPeriod] = useState<ChartPeriod>(defaultPeriod);
   const data: PeriodRetailerPoint[] = dataByPeriod[period] || [];
 
-  const { periods, retailers, matrix, max } = useMemo(() => {
+  const { periodLabels, retailers, matrix, max } = useMemo(() => {
     const periodSet = new Set<string>();
     const retailerSet = new Set<string>();
     for (const d of data) {
       periodSet.add(d.period);
       retailerSet.add(d.retailer);
     }
-    const periods = Array.from(periodSet).sort();
+    const labels = Array.from(periodSet).sort();
     const retailers = Array.from(retailerSet).sort().slice(0, 6);
     const matrix: Record<string, Record<string, number>> = {};
     let max = 0;
-    for (const p of periods) {
+    for (const p of labels) {
       matrix[p] = {};
       for (const r of retailers) {
         const point = data.find((d) => d.period === p && d.retailer === r);
@@ -49,7 +52,7 @@ export default function GroupedBarChart({
         if (val > max) max = val;
       }
     }
-    return { periods, retailers, matrix, max: max || 1 };
+    return { periodLabels: labels, retailers, matrix, max: max || 1 };
   }, [data]);
 
   const displayTitle = `${title} by ${PERIOD_LABEL[period]} & Retailer`;
@@ -69,14 +72,14 @@ export default function GroupedBarChart({
         <h3 className="min-w-0 flex-1 text-sm font-semibold leading-snug text-white">
           {displayTitle}
         </h3>
-        <PeriodToggle value={period} onChange={setPeriod} />
+        <PeriodToggle value={period} onChange={setPeriod} periods={periodOptions} />
       </div>
-      {periods.length === 0 ? (
+      {periodLabels.length === 0 ? (
         <p className="py-12 text-center text-sm text-slate-500">No chart data for current filters</p>
       ) : (
         <>
           <div className="flex h-52 items-end gap-2 overflow-x-auto pb-2">
-            {periods.map((p) => (
+            {periodLabels.map((p) => (
               <div key={p} className="flex min-w-[72px] flex-1 flex-col items-center gap-1">
                 <div className="flex h-44 w-full items-end justify-center gap-0.5">
                   {retailers.map((retailer, ri) => {

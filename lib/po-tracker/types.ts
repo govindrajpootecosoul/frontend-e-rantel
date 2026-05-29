@@ -7,6 +7,8 @@ export type PoTrackerPoSource = 'sps' | 'costco';
 export interface PoTrackerSummary {
   totalPos: number;
   pending: number;
+  cancelled: number;
+  shortShipped: number;
   statusIssues: number;
   withInvoice: number;
   fulfilled: number;

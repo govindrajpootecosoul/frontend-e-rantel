@@ -1,4 +1,5 @@
 export type FilterKey =
+  | 'category'
   | 'retailer'
   | 'location'
   | 'status'
@@ -50,7 +51,6 @@ export interface ScreenGroupOption {
 }
 
 export interface DashboardSummary {
-  channelSelect: number;
   uniqueDistributors: number;
   uniqueRetailers: number;
   uniqueLocations: number;

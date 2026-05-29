@@ -6,9 +6,11 @@ import FilterPanel from '@/components/layout/FilterPanel';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import SpsFilterPanel from '@/components/sps/SpsFilterPanel';
-import KeheFilterPanel from '@/components/stores/kehe/KeheFilterPanel';
+import KeheSidePanels from '@/components/stores/kehe/KeheSidePanels';
+import SproutsSidePanels from '@/components/stores/sprouts/SproutsSidePanels';
 import { resolvePoSoStoreFromPath } from '@/lib/po-so/stores';
 import { KeheProvider } from '@/providers/KeheProvider';
+import { SproutsProvider } from '@/providers/SproutsProvider';
 import AccessGuard from '@/components/auth/AccessGuard';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { DashboardProvider } from '@/providers/DashboardProvider';
@@ -20,13 +22,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdminUsers = pathname.startsWith('/admin/users');
   const poSoStore = resolvePoSoStoreFromPath(pathname);
   const isKehe = pathname.startsWith('/stores/kehe');
+  const isSprouts = pathname.startsWith('/stores/sprouts');
+  const isStoresDashboard = isKehe || isSprouts;
 
   const content = (
-    <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4 lg:p-6">
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+    <div
+      className={`flex min-h-0 flex-1 overflow-hidden p-4 lg:p-6 ${
+        isStoresDashboard ? 'gap-4 lg:gap-6' : 'gap-4'
+      }`}
+    >
+      <main
+        className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${
+          isStoresDashboard ? 'pe-4 lg:pe-6' : ''
+        }`}
+      >
+        {children}
+      </main>
       {isExecutive && !isAdminUsers && <FilterPanel />}
       {poSoStore && <SpsFilterPanel />}
-      {isKehe && <KeheFilterPanel />}
+      {isKehe && <KeheSidePanels />}
+      {isSprouts && <SproutsSidePanels />}
     </div>
   );
 
@@ -43,6 +58,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <SpsProvider storeId={poSoStore}>{content}</SpsProvider>
                 ) : isKehe ? (
                   <KeheProvider>{content}</KeheProvider>
+                ) : isSprouts ? (
+                  <SproutsProvider>{content}</SproutsProvider>
                 ) : (
                   content
                 )}

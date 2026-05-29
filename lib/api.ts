@@ -20,16 +20,34 @@ import type {
   PoTrackerSummary,
 } from './po-tracker/types';
 import type { SpsFilterKey, SpsFiltersState, SpsPaginatedResult, SpsSummary } from './sps/types';
+import type { KeheInventoryDashboard } from './stores/kehe/inventory-types';
 import type {
   KeheChainStoreRow,
   KeheFiltersState,
-  KeheInventoryRow,
   KehePaginatedResult,
   KeheQuantitySummaryRow,
   KeheRetailerSummaryRow,
-  KeheRiskInventoryRow,
   KeheSummary,
 } from './stores/kehe/types';
+import type {
+  KeheRiskFiltersState,
+  KeheRiskInventoryDashboard,
+} from './stores/kehe/risk-types';
+import type { KeheInventoryRow } from './stores/kehe/inventory-types';
+import type { SproutsInventoryDashboard } from './stores/sprouts/inventory-types';
+import type {
+  SproutsChainStoreRow,
+  SproutsFiltersState,
+  SproutsPaginatedResult,
+  SproutsQuantitySummaryRow,
+  SproutsRetailerSummaryRow,
+  SproutsSummary,
+} from './stores/sprouts/types';
+import type {
+  SproutsRiskFiltersState,
+  SproutsRiskInventoryDashboard,
+} from './stores/sprouts/risk-types';
+import type { SproutsInventoryRow } from './stores/sprouts/inventory-types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -93,7 +111,10 @@ async function request<T>(
   return json as T;
 }
 
-function buildKeheQuery(filters?: KeheFiltersState, extra?: Record<string, string | number>) {
+function buildKeheQuery(
+  filters?: KeheFiltersState | KeheRiskFiltersState,
+  extra?: Record<string, string | number>
+) {
   const search = new URLSearchParams();
   if (filters) {
     for (const [key, value] of Object.entries(filters)) {
@@ -449,18 +470,38 @@ export const api = {
       { mode }
     ),
 
-  getKeheInventorySummary: () =>
-    request<{ success: boolean; data: { rowCount: number } }>(
-      '/api/v1/stores/kehe/inventory/summary',
+  getKeheInventoryFilters: () =>
+    request<{
+      success: boolean;
+      data: { months: string[]; rowCount: number; lastUpdated: string };
+    }>('/api/v1/stores/kehe/inventory/filters', { method: 'GET' }, true),
+
+  getKeheInventoryDashboard: (reportMonth = 'All') =>
+    request<{ success: boolean; data: KeheInventoryDashboard }>(
+      `/api/v1/stores/kehe/inventory/dashboard?${buildKeheQuery(undefined, {
+        reportMonth,
+      })}`,
       { method: 'GET' },
       true
     ),
 
-  getKeheInventoryRows: (params: { page?: number; limit?: number } = {}) =>
+  getKeheInventorySummary: (reportMonth = 'All') =>
+    request<{ success: boolean; data: { rowCount: number } }>(
+      `/api/v1/stores/kehe/inventory/summary?${buildKeheQuery(undefined, { reportMonth })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  getKeheInventoryRows: (
+    params: { page?: number; limit?: number; reportMonth?: string } = {}
+  ) =>
     request<{ success: boolean; data: KehePaginatedResult<KeheInventoryRow> }>(
       `/api/v1/stores/kehe/inventory/rows?${buildKeheQuery(undefined, {
         page: params.page ?? 1,
         limit: params.limit ?? 25,
+        ...(params.reportMonth && params.reportMonth !== 'All'
+          ? { reportMonth: params.reportMonth }
+          : {}),
       })}`,
       { method: 'GET' },
       true
@@ -473,19 +514,30 @@ export const api = {
       { mode }
     ),
 
-  getKeheRiskInventorySummary: () =>
-    request<{ success: boolean; data: { rowCount: number } }>(
-      '/api/v1/stores/kehe/risk-inventory/summary',
+  getKeheRiskInventoryFilters: (filters?: KeheRiskFiltersState) =>
+    request<{
+      success: boolean;
+      data: {
+        filterOptions: Record<string, string[]>;
+        rowCount: number;
+        lastUpdated: string;
+      };
+    }>(
+      `/api/v1/stores/kehe/risk-inventory/filters?${buildKeheQuery(filters)}`,
       { method: 'GET' },
       true
     ),
 
-  getKeheRiskInventoryRows: (params: { page?: number; limit?: number } = {}) =>
-    request<{ success: boolean; data: KehePaginatedResult<KeheRiskInventoryRow> }>(
-      `/api/v1/stores/kehe/risk-inventory/rows?${buildKeheQuery(undefined, {
-        page: params.page ?? 1,
-        limit: params.limit ?? 25,
-      })}`,
+  getKeheRiskInventoryDashboard: (filters: KeheRiskFiltersState) =>
+    request<{ success: boolean; data: KeheRiskInventoryDashboard }>(
+      `/api/v1/stores/kehe/risk-inventory/dashboard?${buildKeheQuery(filters)}`,
+      { method: 'GET' },
+      true
+    ),
+
+  getKeheRiskInventorySummary: (filters?: KeheRiskFiltersState) =>
+    request<{ success: boolean; data: { rowCount: number } }>(
+      `/api/v1/stores/kehe/risk-inventory/summary?${buildKeheQuery(filters)}`,
       { method: 'GET' },
       true
     ),
@@ -493,6 +545,126 @@ export const api = {
   uploadKeheRiskInventory: (file: File, mode: 'append' | 'replace' = 'append') =>
     uploadFile<{ success: boolean; message?: string; data: { imported: number } }>(
       '/api/v1/stores/kehe/risk-inventory/upload',
+      file,
+      { mode }
+    ),
+
+  getSproutsChainStoreFilters: (filters?: SproutsFiltersState) =>
+    request<{
+      success: boolean;
+      data: {
+        totalRows: number;
+        filterOptions: Record<string, string[]>;
+        lastUpdated: string;
+      };
+    }>(`/api/v1/stores/sprouts/chain-store/filters?${buildKeheQuery(filters)}`, { method: 'GET' }, true),
+
+  getSproutsChainStoreSummary: (filters: SproutsFiltersState) =>
+    request<{
+      success: boolean;
+      data: {
+        summary: SproutsSummary;
+        byRetailer: SproutsRetailerSummaryRow[];
+        byQuantity: SproutsQuantitySummaryRow[];
+        lastUpdated: string;
+      };
+    }>(`/api/v1/stores/sprouts/chain-store/summary?${buildKeheQuery(filters)}`, { method: 'GET' }, true),
+
+  getSproutsChainStoreRows: (
+    filters: SproutsFiltersState,
+    params: { page?: number; limit?: number } = {}
+  ) =>
+    request<{ success: boolean; data: SproutsPaginatedResult<SproutsChainStoreRow> }>(
+      `/api/v1/stores/sprouts/chain-store/rows?${buildKeheQuery(filters, {
+        page: params.page ?? 1,
+        limit: params.limit ?? 25,
+      })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  uploadSproutsChainStore: (file: File, mode: 'append' | 'replace' = 'append') =>
+    uploadFile<{ success: boolean; message?: string; data: { imported: number; skipped: number } }>(
+      '/api/v1/stores/sprouts/chain-store/upload',
+      file,
+      { mode }
+    ),
+
+  getSproutsInventoryFilters: () =>
+    request<{
+      success: boolean;
+      data: { months: string[]; rowCount: number; lastUpdated: string };
+    }>('/api/v1/stores/sprouts/inventory/filters', { method: 'GET' }, true),
+
+  getSproutsInventoryDashboard: (reportMonth = 'All') =>
+    request<{ success: boolean; data: SproutsInventoryDashboard }>(
+      `/api/v1/stores/sprouts/inventory/dashboard?${buildKeheQuery(undefined, {
+        reportMonth,
+      })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  getSproutsInventorySummary: (reportMonth = 'All') =>
+    request<{ success: boolean; data: { rowCount: number } }>(
+      `/api/v1/stores/sprouts/inventory/summary?${buildKeheQuery(undefined, { reportMonth })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  getSproutsInventoryRows: (
+    params: { page?: number; limit?: number; reportMonth?: string } = {}
+  ) =>
+    request<{ success: boolean; data: SproutsPaginatedResult<SproutsInventoryRow> }>(
+      `/api/v1/stores/sprouts/inventory/rows?${buildKeheQuery(undefined, {
+        page: params.page ?? 1,
+        limit: params.limit ?? 25,
+        ...(params.reportMonth && params.reportMonth !== 'All'
+          ? { reportMonth: params.reportMonth }
+          : {}),
+      })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  uploadSproutsInventory: (file: File, mode: 'append' | 'replace' = 'append') =>
+    uploadFile<{ success: boolean; message?: string; data: { imported: number } }>(
+      '/api/v1/stores/sprouts/inventory/upload',
+      file,
+      { mode }
+    ),
+
+  getSproutsRiskInventoryFilters: (filters?: SproutsRiskFiltersState) =>
+    request<{
+      success: boolean;
+      data: {
+        filterOptions: Record<string, string[]>;
+        rowCount: number;
+        lastUpdated: string;
+      };
+    }>(
+      `/api/v1/stores/sprouts/risk-inventory/filters?${buildKeheQuery(filters)}`,
+      { method: 'GET' },
+      true
+    ),
+
+  getSproutsRiskInventoryDashboard: (filters: SproutsRiskFiltersState) =>
+    request<{ success: boolean; data: SproutsRiskInventoryDashboard }>(
+      `/api/v1/stores/sprouts/risk-inventory/dashboard?${buildKeheQuery(filters)}`,
+      { method: 'GET' },
+      true
+    ),
+
+  getSproutsRiskInventorySummary: (filters?: SproutsRiskFiltersState) =>
+    request<{ success: boolean; data: { rowCount: number } }>(
+      `/api/v1/stores/sprouts/risk-inventory/summary?${buildKeheQuery(filters)}`,
+      { method: 'GET' },
+      true
+    ),
+
+  uploadSproutsRiskInventory: (file: File, mode: 'append' | 'replace' = 'append') =>
+    uploadFile<{ success: boolean; message?: string; data: { imported: number } }>(
+      '/api/v1/stores/sprouts/risk-inventory/upload',
       file,
       { mode }
     ),

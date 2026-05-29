@@ -1,7 +1,7 @@
 import type { DashboardData, FiltersState } from '@/lib/types';
 import { DEFAULT_FILTERS } from '@/lib/constants';
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 type Section = 'overview' | 'bars' | 'status';

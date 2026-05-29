@@ -1,6 +1,6 @@
-export type KeheTabId = 'chain-store' | 'inventory' | 'risk-inventory';
+export type SproutsTabId = 'chain-store' | 'inventory' | 'risk-inventory';
 
-export type KeheFilterKey =
+export type SproutsFilterKey =
   | 'fileMonth'
   | 'retailer'
   | 'retailerArea'
@@ -8,9 +8,9 @@ export type KeheFilterKey =
   | 'upc'
   | 'material';
 
-export type KeheFiltersState = Record<KeheFilterKey, string>;
+export type SproutsFiltersState = Record<SproutsFilterKey, string>;
 
-export interface KeheChainStoreRow {
+export interface SproutsChainStoreRow {
   _id: string;
   fileMonth?: string;
   retailer?: string;
@@ -37,7 +37,7 @@ export interface KeheChainStoreRow {
   markup?: number | null;
 }
 
-export interface KeheSummary {
+export interface SproutsSummary {
   orderedVendorCost: number;
   shippedVendorCost: number;
   fillRateVendorCost: number;
@@ -48,7 +48,7 @@ export interface KeheSummary {
   rowCount: number;
 }
 
-export interface KeheRetailerSummaryRow {
+export interface SproutsRetailerSummaryRow {
   retailer: string;
   retailerArea: string;
   storeCount: number;
@@ -58,7 +58,7 @@ export interface KeheRetailerSummaryRow {
   difference: number;
 }
 
-export interface KeheQuantitySummaryRow {
+export interface SproutsQuantitySummaryRow {
   sku: string;
   retailer: string;
   retailerArea: string;
@@ -68,7 +68,7 @@ export interface KeheQuantitySummaryRow {
   diffQty: number;
 }
 
-export interface KehePaginatedResult<T> {
+export interface SproutsPaginatedResult<T> {
   page: number;
   limit: number;
   total: number;

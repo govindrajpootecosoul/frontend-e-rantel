@@ -2,7 +2,7 @@
 
 import type { ChartPeriod } from '@/lib/types';
 
-const OPTIONS: { value: ChartPeriod; label: string }[] = [
+const ALL_OPTIONS: { value: ChartPeriod; label: string }[] = [
   { value: 'daily', label: 'Daily' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
@@ -11,12 +11,18 @@ const OPTIONS: { value: ChartPeriod; label: string }[] = [
 interface PeriodToggleProps {
   value: ChartPeriod;
   onChange: (period: ChartPeriod) => void;
+  /** Subset of periods to show (defaults to all). */
+  periods?: ChartPeriod[];
 }
 
-export default function PeriodToggle({ value, onChange }: PeriodToggleProps) {
+export default function PeriodToggle({ value, onChange, periods }: PeriodToggleProps) {
+  const options = periods
+    ? ALL_OPTIONS.filter((opt) => periods.includes(opt.value))
+    : ALL_OPTIONS;
+
   return (
     <div className="flex shrink-0 rounded-lg border border-slate-800 bg-slate-950/60 p-0.5">
-      {OPTIONS.map((opt) => (
+      {options.map((opt) => (
         <button
           key={opt.value}
           type="button"

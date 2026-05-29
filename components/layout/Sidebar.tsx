@@ -36,7 +36,7 @@ const storesChildren: {
   comingSoon?: boolean;
 }[] = [
   { label: 'KeHe', href: '/stores/kehe', screen: 'stores_kehe' },
-  { label: 'Sprouts', screen: 'stores_sprouts', comingSoon: true },
+  { label: 'Sprouts', href: '/stores/sprouts', screen: 'stores_sprouts' },
 ];
 
 function SoonBadge() {

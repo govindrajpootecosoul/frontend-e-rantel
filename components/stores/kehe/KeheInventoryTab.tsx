@@ -1,51 +1,27 @@
 'use client';
 
-import KeheDataTable from '@/components/stores/kehe/KeheDataTable';
+import KeheInventoryAgingCards from '@/components/stores/kehe/inventory/KeheInventoryAgingCards';
+import KeheInventoryDcTable from '@/components/stores/kehe/inventory/KeheInventoryDcTable';
+import KeheInventoryOverviewTable from '@/components/stores/kehe/inventory/KeheInventoryOverviewTable';
+import KeheInventorySkuGrid from '@/components/stores/kehe/inventory/KeheInventorySkuGrid';
 import KeheUploadBar from '@/components/stores/kehe/KeheUploadBar';
 import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
-import type { KeheTableColumn } from '@/lib/stores/kehe/columns';
-import type { KeheInventoryRow } from '@/lib/stores/kehe/types';
+import { useKehe } from '@/providers/KeheProvider';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-const INVENTORY_COLUMNS: KeheTableColumn<KeheInventoryRow>[] = [
-  { key: 'fileMonth', header: 'File Month', render: (r) => r.fileMonth || '—' },
-  { key: 'retailer', header: 'Retailer', render: (r) => r.retailer || '—' },
-  { key: 'retailerArea', header: 'Retailer Area', render: (r) => r.retailerArea || '—' },
-  { key: 'sku', header: 'SKU', render: (r) => r.sku || '—' },
-  { key: 'upc', header: 'UPC', render: (r) => r.upc || '—' },
-  { key: 'productDescription', header: 'Product', render: (r) => r.productDescription || '—' },
-  { key: 'material', header: 'Material', render: (r) => r.material || '—' },
-  {
-    key: 'onHandQty',
-    header: 'On Hand Qty',
-    align: 'right',
-    render: (r) => (r.onHandQty === null || r.onHandQty === undefined ? '—' : formatNumber(r.onHandQty)),
-  },
-  {
-    key: 'onOrderQty',
-    header: 'On Order Qty',
-    align: 'right',
-    render: (r) => (r.onOrderQty === null || r.onOrderQty === undefined ? '—' : formatNumber(r.onOrderQty)),
-  },
-];
-
 export default function KeheInventoryTab() {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const { inventoryReportMonth, refresh } = useKehe();
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const summaryQuery = useQuery({
-    queryKey: ['kehe-inventory-summary'],
-    queryFn: async () => (await api.getKeheInventorySummary()).data,
-  });
-
-  const rowsQuery = useQuery({
-    queryKey: ['kehe-inventory', page, pageSize],
-    queryFn: async () => (await api.getKeheInventoryRows({ page, limit: pageSize })).data,
+  const dashboardQuery = useQuery({
+    queryKey: ['kehe-inventory-dashboard', inventoryReportMonth],
+    queryFn: async () =>
+      (await api.getKeheInventoryDashboard(inventoryReportMonth)).data,
+    staleTime: 0,
   });
 
   const handleUpload = async (file: File, options: { mode: 'append' | 'replace' }) => {
@@ -54,29 +30,25 @@ export default function KeheInventoryTab() {
     try {
       const res = await api.uploadKeheInventory(file, options.mode);
       setUploadMessage(res.message || `Imported ${res.data.imported} rows`);
-      queryClient.invalidateQueries({ queryKey: ['kehe-inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['kehe-inventory-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['kehe-inventory-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['kehe-inventory-filters'] });
+      refresh();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     }
   };
 
-  const loading = summaryQuery.isLoading || rowsQuery.isLoading;
-  const rows = rowsQuery.data?.rows ?? [];
+  const loading = dashboardQuery.isLoading;
+  const data = dashboardQuery.data;
 
   return (
     <div className="space-y-5">
-      <div className="glass-panel rounded-xl border border-slate-800 p-4">
-        <p className="text-sm text-slate-400">
-          KeHE Inventory — upload Excel or CSV with retailer, SKU, and quantity columns. Data is
-          stored in the <code className="text-cyan-400">kehe_inventory</code> collection.
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-slate-500">
+          {data?.rowCount
+            ? `${formatNumber(data.rowCount)} line items`
+            : 'Upload KeHE inventory export (EnterpriseSupplier, DC, SKU, QuantityOnHand, etc.)'}
         </p>
-        <p className="mt-2 text-2xl font-bold text-white">
-          {formatNumber(summaryQuery.data?.rowCount ?? 0)} rows
-        </p>
-      </div>
-
-      <div className="flex flex-wrap justify-end">
         <KeheUploadBar onUpload={handleUpload} disabled={loading} />
       </div>
 
@@ -90,23 +62,16 @@ export default function KeheInventoryTab() {
           {uploadError}
         </div>
       )}
+      {dashboardQuery.error && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-300">
+          {(dashboardQuery.error as Error).message}
+        </div>
+      )}
 
-      <KeheDataTable
-        title="KeHE Inventory"
-        columns={INVENTORY_COLUMNS}
-        rows={rows}
-        loading={loading}
-        pagination={{
-          page,
-          pageSize,
-          total: rowsQuery.data?.total ?? 0,
-          onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setPage(1);
-          },
-        }}
-      />
+      <KeheInventoryAgingCards data={data} loading={loading} />
+      <KeheInventoryOverviewTable data={data} loading={loading} />
+      <KeheInventoryDcTable data={data} loading={loading} />
+      <KeheInventorySkuGrid data={data} loading={loading} />
     </div>
   );
 }

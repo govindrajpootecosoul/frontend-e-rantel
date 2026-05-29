@@ -13,6 +13,7 @@ import type { ExecutiveRow } from './types';
 const CHART_PERIODS: ChartPeriod[] = ['daily', 'monthly', 'yearly'];
 
 const FILTER_OPTION_KEYS: FilterKey[] = [
+  'category',
   'retailer',
   'location',
   'status',
@@ -32,6 +33,11 @@ const prependAll = (values: Iterable<string>) => [
 
 export const applyExecutiveFilters = (rows: ExecutiveRow[], filters: FiltersState): ExecutiveRow[] =>
   rows.filter((row) => {
+    if (filters.category !== 'All') {
+      const want = filters.category.toLowerCase();
+      const rowCat = String(row.category || '').toLowerCase();
+      if (rowCat !== want) return false;
+    }
     if (filters.retailer !== 'All' && row.retailer !== filters.retailer) return false;
     if (filters.location !== 'All' && row.location !== filters.location) return false;
     if (filters.status !== 'All' && row.status !== filters.status) return false;
@@ -53,6 +59,7 @@ export const buildExecutiveFilterOptions = (rows: ExecutiveRow[]): FilterOptions
   for (const k of FILTER_OPTION_KEYS) buckets[k] = new Set();
 
   for (const row of rows) {
+    if (row.category) buckets.category.add(row.category);
     if (row.retailer) buckets.retailer.add(row.retailer);
     if (row.location) buckets.location.add(row.location);
     if (row.status) buckets.status.add(row.status);
@@ -213,7 +220,6 @@ export const computeExecutiveDashboard = (
     rowCount: rows.length,
     dedupedCount: deduped.length,
     summary: {
-      channelSelect: uniqueCount(deduped, 'storeId'),
       uniqueDistributors: uniqueCount(deduped, 'distributor'),
       uniqueRetailers: uniqueCount(deduped, 'retailer'),
       uniqueLocations: uniqueCount(deduped, 'location'),
