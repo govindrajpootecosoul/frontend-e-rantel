@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased scroll-smooth;
+  }
+
+  body {
+    @apply bg-obsidian text-slate-100 min-h-screen;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-xl;
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(30, 41, 59, 0.4) 25%,
+      rgba(51, 65, 85, 0.6) 50%,
+      rgba(30, 41, 59, 0.4) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
