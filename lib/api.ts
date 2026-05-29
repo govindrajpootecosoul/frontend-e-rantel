@@ -1,9 +1,13 @@
 import { getToken } from './auth';
 import type { DashboardData, FilterOptions, FiltersState } from './types';
+import type { NotificationsResponse } from './notifications/types';
 import type {
   PoTrackerCategory,
   PoTrackerChannelType,
+  PoTrackerOrderDetail,
+  PoTrackerOrderUpdateBody,
   PoTrackerPaginatedResult,
+  PoTrackerPoSource,
   PoTrackerSummary,
 } from './po-tracker/types';
 import type { SpsFilterKey, SpsFiltersState, SpsPaginatedResult, SpsSummary } from './sps/types';
@@ -83,11 +87,15 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) }
     ),
 
-  getExecutiveDataset: () =>
+  getExecutiveDataset: (refresh = false) =>
     request<{
       success: boolean;
       data: { rowCount: number; rows: unknown[]; lastUpdated: string };
-    }>('/api/v1/executive/dataset', { method: 'GET' }, true),
+    }>(
+      `/api/v1/executive/dataset${refresh ? '?refresh=1' : ''}`,
+      { method: 'GET' },
+      true
+    ),
 
   getFilters: () =>
     request<{ success: boolean; data: FilterOptions }>(
@@ -189,6 +197,46 @@ export const api = {
     }>(
       `/api/v1/po-tracker/filters?channelType=${encodeURIComponent(channelType)}&category=${encodeURIComponent(category)}`,
       { method: 'GET' },
+      true
+    ),
+
+  getPoTrackerOrder: (id: string, poSource: PoTrackerPoSource) =>
+    request<{ success: boolean; data: PoTrackerOrderDetail }>(
+      `/api/v1/po-tracker/orders/${encodeURIComponent(id)}?poSource=${encodeURIComponent(poSource)}`,
+      { method: 'GET' },
+      true
+    ),
+
+  updatePoTrackerOrder: (
+    id: string,
+    poSource: PoTrackerPoSource,
+    body: PoTrackerOrderUpdateBody,
+    channelType: PoTrackerChannelType
+  ) =>
+    request<{ success: boolean; data: PoTrackerOrderDetail & { message?: string } }>(
+      `/api/v1/po-tracker/orders/${encodeURIComponent(id)}?poSource=${encodeURIComponent(poSource)}&channelType=${encodeURIComponent(channelType)}`,
+      { method: 'PATCH', body: JSON.stringify(body) },
+      true
+    ),
+
+  getNotifications: (limit = 30) =>
+    request<{ success: boolean; data: NotificationsResponse }>(
+      `/api/v1/notifications?limit=${limit}`,
+      { method: 'GET' },
+      true
+    ),
+
+  markNotificationRead: (id: string) =>
+    request<{ success: boolean; data: { unreadCount: number } }>(
+      `/api/v1/notifications/${encodeURIComponent(id)}/read`,
+      { method: 'PATCH' },
+      true
+    ),
+
+  markAllNotificationsRead: () =>
+    request<{ success: boolean; data: { unreadCount: number } }>(
+      '/api/v1/notifications/read-all',
+      { method: 'PATCH' },
       true
     ),
 };

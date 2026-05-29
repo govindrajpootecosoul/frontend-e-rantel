@@ -1,23 +1,40 @@
 'use client';
 
+import PoTrackerDetailModal from '@/components/po-tracker/PoTrackerDetailModal';
 import PoTrackerSummaryCards from '@/components/po-tracker/PoTrackerSummaryCards';
-import PoTrackerTable from '@/components/po-tracker/PoTrackerTable';
-import { PO_TRACKER_CONFIG, CATEGORY_OPTIONS } from '@/lib/po-tracker/config';
-import type { PoTrackerCategory, PoTrackerChannelType } from '@/lib/po-tracker/types';
+import PoTrackerTable, { type PoTrackerTableRow } from '@/components/po-tracker/PoTrackerTable';
+import {
+  PO_TRACKER_CONFIG,
+  CATEGORY_OPTIONS,
+  PO_TRACKER_STATUS_OPTIONS,
+} from '@/lib/po-tracker/config';
+import type {
+  PoTrackerCategory,
+  PoTrackerChannelType,
+  PoTrackerPoSource,
+} from '@/lib/po-tracker/types';
 import { formatSpsDate, resolvePoStatus } from '@/lib/sps/utils';
 import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, RefreshCw, Search } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PoTrackerPageProps {
   channelType: PoTrackerChannelType;
+  /** Click status to open PO detail modal, edit fields, and view change history */
+  enableStatusDetail?: boolean;
 }
 
-export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
+export default function PoTrackerPage({
+  channelType,
+  enableStatusDetail = false,
+}: PoTrackerPageProps) {
   const config = PO_TRACKER_CONFIG[channelType];
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [category, setCategory] = useState<PoTrackerCategory>('all');
   const [status, setStatus] = useState('All');
@@ -25,6 +42,7 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
   const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [detailRow, setDetailRow] = useState<PoTrackerTableRow | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -40,13 +58,34 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  const filtersQuery = useQuery({
-    queryKey: ['po-tracker-filters', channelType, category],
-    queryFn: async () => {
-      const res = await api.getPoTrackerFilters(channelType, category);
-      return res.data;
-    },
-  });
+  useEffect(() => {
+    if (!enableStatusDetail) return;
+    const poId = searchParams.get('poId');
+    const poSourceParam = searchParams.get('poSource')?.toLowerCase();
+    if (!poId || (poSourceParam !== 'sps' && poSourceParam !== 'costco')) return;
+
+    setDetailRow({
+      id: poId,
+      poSource: poSourceParam,
+      category: poSourceParam.toUpperCase(),
+      poNumber: searchParams.get('poNumber') || '—',
+      channel: '—',
+      distributor: '—',
+      retailer: '—',
+      sku: '—',
+      poDate: '—',
+      dueDate: '—',
+      warehouse: '—',
+      status: '—',
+    });
+  }, [searchParams, enableStatusDetail]);
+
+  const closeDetail = () => {
+    setDetailRow(null);
+    if (searchParams.get('poId')) {
+      router.replace(channelType === 'b2b' ? '/po-trackers/b2b' : '/po-trackers/retails');
+    }
+  };
 
   const summaryQuery = useQuery({
     queryKey: ['po-tracker-summary', channelType, category, status, search],
@@ -76,8 +115,6 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
     staleTime: 0,
   });
 
-  const statusOptions = filtersQuery.data?.statuses ?? ['All'];
-
   const summaryMatchesFilters =
     summaryQuery.data?.category === category &&
     summaryQuery.data?.channelType === channelType;
@@ -97,9 +134,13 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
 
   const tableRows = useMemo(
     () =>
-      rows.map((row) => ({
+      rows.map((row) => {
+        const source = String((row as { _poSource?: string })._poSource || 'sps').toLowerCase();
+        const poSource: PoTrackerPoSource = source === 'costco' ? 'costco' : 'sps';
+        return {
         id: row._id,
-        category: (row.storeId || '—').toUpperCase(),
+        poSource,
+        category: poSource.toUpperCase(),
         poNumber: row.poNumber || '—',
         channel: row.channel || '—',
         distributor: row.distributor || '—',
@@ -109,12 +150,12 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
         dueDate: formatSpsDate(row.poRequestedDeliveryDate),
         warehouse: row.warehouse || '—',
         status: resolvePoStatus(row) || '—',
-      })),
+      };
+      }),
     [rows]
   );
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['po-tracker-filters', channelType] });
     queryClient.invalidateQueries({ queryKey: ['po-tracker-summary', channelType] });
     queryClient.invalidateQueries({ queryKey: ['po-tracker-orders', channelType] });
   };
@@ -213,9 +254,10 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
               onChange={(e) => setStatus(e.target.value)}
               className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
             >
-              {statusOptions.map((opt) => (
+              <option value="All">All Statuses</option>
+              {PO_TRACKER_STATUS_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt === 'All' ? 'All Statuses' : opt}
+                  {opt}
                 </option>
               ))}
             </select>
@@ -226,6 +268,7 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
           rows={tableRows}
           loading={loading}
           showCategory={category === 'all'}
+          onStatusClick={enableStatusDetail ? (row) => setDetailRow(row) : undefined}
           pagination={{
             page,
             pageSize,
@@ -235,6 +278,16 @@ export default function PoTrackerPage({ channelType }: PoTrackerPageProps) {
           }}
         />
       </div>
+
+      {enableStatusDetail && (
+        <PoTrackerDetailModal
+          open={Boolean(detailRow)}
+          orderId={detailRow?.id ?? null}
+          poSource={detailRow?.poSource ?? null}
+          channelType={channelType}
+          onClose={closeDetail}
+        />
+      )}
     </div>
   );
 }

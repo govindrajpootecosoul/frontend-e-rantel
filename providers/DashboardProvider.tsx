@@ -6,6 +6,7 @@ import {
   useContext,
   useDeferredValue,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -17,8 +18,18 @@ import {
   buildExecutiveFilterOptions,
   computeExecutiveDashboard,
 } from '@/lib/executive/compute';
+import {
+  clearExecutiveDatasetCache,
+  readExecutiveDatasetCache,
+  writeExecutiveDatasetCache,
+} from '@/lib/executive/datasetCache';
 import type { ExecutiveRow } from '@/lib/executive/types';
 import type { DashboardData, FilterOptions, FiltersState } from '@/lib/types';
+
+interface ExecutiveDataset {
+  rows: ExecutiveRow[];
+  lastUpdated: string;
+}
 
 interface DashboardContextValue {
   filters: FiltersState;
@@ -28,6 +39,7 @@ interface DashboardContextValue {
   filtersLoading: boolean;
   dashboard?: DashboardData;
   dashboardLoading: boolean;
+  isRefreshing: boolean;
   isComputing: boolean;
   dashboardError: Error | null;
   refresh: () => void;
@@ -37,22 +49,35 @@ interface DashboardContextValue {
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
+function getInitialDataset(): ExecutiveDataset | undefined {
+  const cached = readExecutiveDatasetCache();
+  if (!cached) return undefined;
+  return { rows: cached.rows, lastUpdated: cached.lastUpdated };
+}
+
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const deferredFilters = useDeferredValue(filters);
+  const forceServerRefreshRef = useRef(false);
 
   const datasetQuery = useQuery({
     queryKey: ['executive-dataset'],
     queryFn: async () => {
-      const res = await api.getExecutiveDataset();
-      return {
+      const forceRefresh = forceServerRefreshRef.current;
+      forceServerRefreshRef.current = false;
+      const res = await api.getExecutiveDataset(forceRefresh);
+      const data = {
         rows: res.data.rows as ExecutiveRow[],
         lastUpdated: res.data.lastUpdated,
       };
+      writeExecutiveDatasetCache(data.rows, data.lastUpdated);
+      return data;
     },
+    initialData: getInitialDataset,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 
   const allRows = datasetQuery.data?.rows ?? [];
@@ -79,7 +104,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const resetFilters = useCallback(() => setFilters(DEFAULT_FILTERS), []);
 
+  const refresh = useCallback(() => {
+    clearExecutiveDatasetCache();
+    forceServerRefreshRef.current = true;
+    void datasetQuery.refetch();
+  }, [datasetQuery]);
+
   const isComputing = filters !== deferredFilters;
+  const hasData = allRows.length > 0;
+  const dashboardLoading = datasetQuery.isPending && !hasData;
+  const isRefreshing = datasetQuery.isFetching && hasData;
 
   const value = useMemo(
     () => ({
@@ -87,12 +121,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setFilter,
       resetFilters,
       filterOptions,
-      filtersLoading: datasetQuery.isLoading,
+      filtersLoading: dashboardLoading,
       dashboard,
-      dashboardLoading: datasetQuery.isLoading,
+      dashboardLoading,
+      isRefreshing,
       isComputing,
       dashboardError: datasetQuery.error as Error | null,
-      refresh: () => datasetQuery.refetch(),
+      refresh,
       sidebarCollapsed,
       setSidebarCollapsed,
     }),
@@ -101,11 +136,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setFilter,
       resetFilters,
       filterOptions,
-      datasetQuery.isLoading,
+      dashboardLoading,
       dashboard,
+      isRefreshing,
       isComputing,
       datasetQuery.error,
-      datasetQuery.refetch,
+      refresh,
       sidebarCollapsed,
     ]
   );

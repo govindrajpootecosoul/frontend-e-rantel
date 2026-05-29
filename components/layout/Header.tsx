@@ -1,5 +1,6 @@
 'use client';
 
+import NotificationBell from '@/components/layout/NotificationBell';
 import { LogOut, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -40,6 +41,7 @@ export default function Header() {
                 : '—'}
           </p>
         </div>
+        <NotificationBell />
         <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5">
           <User size={16} className="text-cyan-400" />
           <span className="text-xs text-slate-300">Executive</span>

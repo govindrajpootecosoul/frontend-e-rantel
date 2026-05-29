@@ -9,7 +9,14 @@ import { formatDateTime, formatNumber } from '@/lib/format';
 import { useDashboard } from '@/providers/DashboardProvider';
 
 export default function ExecutivePage() {
-  const { dashboard, dashboardLoading, isComputing, dashboardError, refresh } = useDashboard();
+  const {
+    dashboard,
+    dashboardLoading,
+    isRefreshing,
+    isComputing,
+    dashboardError,
+    refresh,
+  } = useDashboard();
   const busy = dashboardLoading || isComputing;
 
   return (
@@ -30,6 +37,7 @@ export default function ExecutivePage() {
                 {' '}
                 · {formatNumber(dashboard.rowCount)} rows
                 {isComputing && ' · recalculating…'}
+                {isRefreshing && !dashboardLoading && ' · updating…'}
               </span>
             )}
           </p>
@@ -37,10 +45,13 @@ export default function ExecutivePage() {
         <button
           type="button"
           onClick={() => refresh()}
-          disabled={dashboardLoading}
+          disabled={dashboardLoading || isRefreshing}
           className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-50"
         >
-          <RefreshCw size={14} className={dashboardLoading ? 'animate-spin' : ''} />
+          <RefreshCw
+            size={14}
+            className={dashboardLoading || isRefreshing ? 'animate-spin' : ''}
+          />
           Refresh data
         </button>
       </div>

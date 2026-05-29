@@ -4,6 +4,7 @@ import TablePagination from '@/components/ui/TablePagination';
 
 export interface PoTrackerTableRow {
   id: string;
+  poSource: 'sps' | 'costco';
   category: string;
   poNumber: string;
   channel: string;
@@ -20,6 +21,7 @@ interface PoTrackerTableProps {
   rows: PoTrackerTableRow[];
   loading?: boolean;
   showCategory?: boolean;
+  onStatusClick?: (row: PoTrackerTableRow) => void;
   pagination: {
     page: number;
     pageSize: number;
@@ -42,7 +44,15 @@ const COLUMNS = [
   { key: 'status', header: 'Status' },
 ] as const;
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({
+  status,
+  clickable,
+  onClick,
+}: {
+  status: string;
+  clickable?: boolean;
+  onClick?: () => void;
+}) {
   const lower = status.toLowerCase();
   const tone =
     lower.includes('fulfill')
@@ -53,17 +63,26 @@ function StatusBadge({ status }: { status: string }) {
           ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/25'
           : 'bg-slate-800 text-slate-300';
 
-  return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${tone}`}>
-      {status}
-    </span>
-  );
+  const className = `inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${tone} ${
+    clickable ? 'cursor-pointer ring-offset-2 ring-offset-slate-950 hover:ring-2 hover:ring-cyan-500/40' : ''
+  }`;
+
+  if (clickable && onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {status}
+      </button>
+    );
+  }
+
+  return <span className={className}>{status}</span>;
 }
 
 export default function PoTrackerTable({
   rows,
   loading,
   showCategory,
+  onStatusClick,
   pagination,
 }: PoTrackerTableProps) {
   const visibleColumns = COLUMNS.filter((col) => showCategory || col.key !== 'category');
@@ -100,7 +119,8 @@ export default function PoTrackerTable({
                   colSpan={visibleColumns.length}
                   className="px-4 py-12 text-center text-slate-500"
                 >
-                  No purchase orders found
+                  No purchase orders found for this channel and category. Try Retails for
+                  Costco retail data, or set Category to All.
                 </td>
               </tr>
             ) : (
@@ -112,7 +132,11 @@ export default function PoTrackerTable({
                   {visibleColumns.map((col) => (
                     <td key={col.key} className="whitespace-nowrap px-3 py-2 text-slate-300">
                       {col.key === 'status' ? (
-                        <StatusBadge status={row.status} />
+                        <StatusBadge
+                          status={row.status}
+                          clickable={Boolean(onStatusClick)}
+                          onClick={() => onStatusClick?.(row)}
+                        />
                       ) : col.key === 'category' ? (
                         <span className="font-medium uppercase text-cyan-300/90">
                           {row.category}

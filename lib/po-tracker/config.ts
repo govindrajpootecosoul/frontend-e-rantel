@@ -21,6 +21,15 @@ export const CATEGORY_OPTIONS = [
   { value: 'costco', label: 'Costco' },
 ] as const;
 
+/** Status filter options (All + fixed list). */
+export const PO_TRACKER_STATUS_OPTIONS = [
+  'Cancelled',
+  'Fulfilled',
+  'Over Shipped',
+  'Pending',
+  'Short Shipped',
+] as const;
+
 export function resolvePoTrackerChannel(pathname: string): PoTrackerChannelType | null {
   if (pathname.startsWith('/po-trackers/b2b')) return 'b2b';
   if (pathname.startsWith('/po-trackers/retails')) return 'retail';
