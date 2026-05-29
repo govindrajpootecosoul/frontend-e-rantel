@@ -1,5 +1,14 @@
 import { getToken } from './auth';
-import type { DashboardData, FilterOptions, FiltersState } from './types';
+import type {
+  AuthUser,
+  DashboardData,
+  FilterOptions,
+  FiltersState,
+  ManagedUser,
+  ScreenGroupOption,
+  ScreenId,
+  UserRole,
+} from './types';
 import type { NotificationsResponse } from './notifications/types';
 import type {
   PoTrackerCategory,
@@ -11,6 +20,16 @@ import type {
   PoTrackerSummary,
 } from './po-tracker/types';
 import type { SpsFilterKey, SpsFiltersState, SpsPaginatedResult, SpsSummary } from './sps/types';
+import type {
+  KeheChainStoreRow,
+  KeheFiltersState,
+  KeheInventoryRow,
+  KehePaginatedResult,
+  KeheQuantitySummaryRow,
+  KeheRetailerSummaryRow,
+  KeheRiskInventoryRow,
+  KeheSummary,
+} from './stores/kehe/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -74,6 +93,52 @@ async function request<T>(
   return json as T;
 }
 
+function buildKeheQuery(filters?: KeheFiltersState, extra?: Record<string, string | number>) {
+  const search = new URLSearchParams();
+  if (filters) {
+    for (const [key, value] of Object.entries(filters)) {
+      if (value && value !== 'All') search.set(key, value);
+    }
+  }
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      if (value !== undefined && value !== '') search.set(key, String(value));
+    }
+  }
+  return search.toString();
+}
+
+async function uploadFile<T>(
+  path: string,
+  file: File,
+  params: { mode?: 'append' | 'replace' } = {}
+): Promise<T> {
+  const token = getToken();
+  const search = new URLSearchParams();
+  if (params.mode) search.set('mode', params.mode);
+  const qs = search.toString();
+
+  const form = new FormData();
+  form.append('file', file);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+  } catch {
+    throw new Error(
+      `Cannot reach API at ${API_URL}. Start the backend: cd backend_e-rantel && npm run dev`
+    );
+  }
+
+  const json = (await res.json()) as { message?: string; success?: boolean };
+  if (!res.ok) throw new Error(json.message || 'Upload failed');
+  return json as T;
+}
+
 export const api = {
   signup: (body: { fullname: string; email: string; mobile?: string; password: string }) =>
     request<{ success: boolean; data: { token: string; user: unknown } }>(
@@ -82,9 +147,57 @@ export const api = {
     ),
 
   signin: (body: { email: string; password: string }) =>
-    request<{ success: boolean; data: { token: string; user: unknown } }>(
+    request<{ success: boolean; data: { token: string; user: AuthUser } }>(
       '/api/v1/auth/signin',
       { method: 'POST', body: JSON.stringify(body) }
+    ),
+
+  getMe: () =>
+    request<{
+      success: boolean;
+      data: { user: AuthUser; screenGroups: ScreenGroupOption[]; token?: string };
+    }>('/api/v1/auth/me', { method: 'GET' }, true),
+
+  listUsers: () =>
+    request<{
+      success: boolean;
+      data: {
+        users: ManagedUser[];
+        screenGroups: ScreenGroupOption[];
+        screenOptions: ScreenId[];
+      };
+    }>('/api/v1/users', { method: 'GET' }, true),
+
+  createUser: (body: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+    role?: UserRole;
+    status?: 'active' | 'inactive';
+    screenAccess?: ScreenId[];
+  }) =>
+    request<{ success: boolean; data: { user: ManagedUser }; message?: string }>(
+      '/api/v1/users',
+      { method: 'POST', body: JSON.stringify(body) },
+      true
+    ),
+
+  updateUser: (
+    id: string,
+    body: {
+      name?: string;
+      phone?: string;
+      password?: string;
+      role?: UserRole;
+      status?: 'active' | 'inactive';
+      screenAccess?: ScreenId[];
+    }
+  ) =>
+    request<{ success: boolean; data: { user: ManagedUser }; message?: string }>(
+      `/api/v1/users/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(body) },
+      true
     ),
 
   getExecutiveDataset: (refresh = false) =>
@@ -94,6 +207,61 @@ export const api = {
     }>(
       `/api/v1/executive/dataset${refresh ? '?refresh=1' : ''}`,
       { method: 'GET' },
+      true
+    ),
+
+  getExecutiveFilters: () =>
+    request<{ success: boolean; data: FilterOptions }>(
+      '/api/v1/executive/filters',
+      { method: 'GET' },
+      true
+    ),
+
+  getExecutiveOverview: (filters: FiltersState, refresh = false) =>
+    request<{
+      success: boolean;
+      data: {
+        rowCount: number;
+        dedupedCount: number;
+        summary: DashboardData['summary'];
+        kpiCards: DashboardData['kpiCards'];
+        lastUpdated: string;
+      };
+    }>(
+      `/api/v1/executive/overview${refresh ? '?refresh=1' : ''}`,
+      { method: 'POST', body: JSON.stringify({ filters }) },
+      true
+    ),
+
+  getExecutiveBarCharts: (filters: FiltersState, refresh = false) =>
+    request<{
+      success: boolean;
+      data: {
+        charts: Pick<
+          DashboardData['charts'],
+          'poSaleByRetailer' | 'invoiceSaleByRetailer'
+        >;
+        lastUpdated: string;
+      };
+    }>(
+      `/api/v1/executive/charts/bars${refresh ? '?refresh=1' : ''}`,
+      { method: 'POST', body: JSON.stringify({ filters }) },
+      true
+    ),
+
+  getExecutiveStatusCharts: (filters: FiltersState, refresh = false) =>
+    request<{
+      success: boolean;
+      data: {
+        charts: Pick<
+          DashboardData['charts'],
+          'poDeliveryStatus' | 'poStatusBreakdown'
+        >;
+        lastUpdated: string;
+      };
+    }>(
+      `/api/v1/executive/charts/status${refresh ? '?refresh=1' : ''}`,
+      { method: 'POST', body: JSON.stringify({ filters }) },
       true
     ),
 
@@ -238,5 +406,94 @@ export const api = {
       '/api/v1/notifications/read-all',
       { method: 'PATCH' },
       true
+    ),
+
+  getKeheChainStoreFilters: (filters?: KeheFiltersState) =>
+    request<{
+      success: boolean;
+      data: {
+        totalRows: number;
+        filterOptions: Record<string, string[]>;
+        lastUpdated: string;
+      };
+    }>(`/api/v1/stores/kehe/chain-store/filters?${buildKeheQuery(filters)}`, { method: 'GET' }, true),
+
+  getKeheChainStoreSummary: (filters: KeheFiltersState) =>
+    request<{
+      success: boolean;
+      data: {
+        summary: KeheSummary;
+        byRetailer: KeheRetailerSummaryRow[];
+        byQuantity: KeheQuantitySummaryRow[];
+        lastUpdated: string;
+      };
+    }>(`/api/v1/stores/kehe/chain-store/summary?${buildKeheQuery(filters)}`, { method: 'GET' }, true),
+
+  getKeheChainStoreRows: (
+    filters: KeheFiltersState,
+    params: { page?: number; limit?: number } = {}
+  ) =>
+    request<{ success: boolean; data: KehePaginatedResult<KeheChainStoreRow> }>(
+      `/api/v1/stores/kehe/chain-store/rows?${buildKeheQuery(filters, {
+        page: params.page ?? 1,
+        limit: params.limit ?? 25,
+      })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  uploadKeheChainStore: (file: File, mode: 'append' | 'replace' = 'append') =>
+    uploadFile<{ success: boolean; message?: string; data: { imported: number; skipped: number } }>(
+      '/api/v1/stores/kehe/chain-store/upload',
+      file,
+      { mode }
+    ),
+
+  getKeheInventorySummary: () =>
+    request<{ success: boolean; data: { rowCount: number } }>(
+      '/api/v1/stores/kehe/inventory/summary',
+      { method: 'GET' },
+      true
+    ),
+
+  getKeheInventoryRows: (params: { page?: number; limit?: number } = {}) =>
+    request<{ success: boolean; data: KehePaginatedResult<KeheInventoryRow> }>(
+      `/api/v1/stores/kehe/inventory/rows?${buildKeheQuery(undefined, {
+        page: params.page ?? 1,
+        limit: params.limit ?? 25,
+      })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  uploadKeheInventory: (file: File, mode: 'append' | 'replace' = 'append') =>
+    uploadFile<{ success: boolean; message?: string; data: { imported: number } }>(
+      '/api/v1/stores/kehe/inventory/upload',
+      file,
+      { mode }
+    ),
+
+  getKeheRiskInventorySummary: () =>
+    request<{ success: boolean; data: { rowCount: number } }>(
+      '/api/v1/stores/kehe/risk-inventory/summary',
+      { method: 'GET' },
+      true
+    ),
+
+  getKeheRiskInventoryRows: (params: { page?: number; limit?: number } = {}) =>
+    request<{ success: boolean; data: KehePaginatedResult<KeheRiskInventoryRow> }>(
+      `/api/v1/stores/kehe/risk-inventory/rows?${buildKeheQuery(undefined, {
+        page: params.page ?? 1,
+        limit: params.limit ?? 25,
+      })}`,
+      { method: 'GET' },
+      true
+    ),
+
+  uploadKeheRiskInventory: (file: File, mode: 'append' | 'replace' = 'append') =>
+    uploadFile<{ success: boolean; message?: string; data: { imported: number } }>(
+      '/api/v1/stores/kehe/risk-inventory/upload',
+      file,
+      { mode }
     ),
 };

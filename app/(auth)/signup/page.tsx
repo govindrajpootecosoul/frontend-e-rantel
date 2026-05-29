@@ -6,6 +6,7 @@ import { FormEvent, useState } from 'react';
 import AuthFormShell from '@/components/auth/AuthFormShell';
 import { api } from '@/lib/api';
 import { setAuth } from '@/lib/auth';
+import { getDefaultRoute } from '@/lib/permissions';
 import type { AuthUser } from '@/lib/types';
 
 export default function SignupPage() {
@@ -26,8 +27,9 @@ export default function SignupPage() {
         mobile: String(form.get('mobile') || ''),
         password: String(form.get('password')),
       });
-      setAuth(res.data.token, res.data.user as AuthUser);
-      router.push('/executive');
+      const user = res.data.user as AuthUser;
+      setAuth(res.data.token, user);
+      router.push(getDefaultRoute(user));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {

@@ -1,3 +1,4 @@
+import { normalizeAuthUser } from './permissions';
 import type { AuthUser } from './types';
 
 const TOKEN_KEY = 'er_token';
@@ -9,8 +10,17 @@ export const getToken = (): string | null => {
 };
 
 export const setAuth = (token: string, user: AuthUser) => {
+  const normalized = normalizeAuthUser(user);
   localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.setItem(USER_KEY, JSON.stringify(normalized));
+};
+
+export const updateStoredUser = (user: AuthUser) => {
+  localStorage.setItem(USER_KEY, JSON.stringify(normalizeAuthUser(user)));
+};
+
+export const updateStoredToken = (token: string) => {
+  localStorage.setItem(TOKEN_KEY, token);
 };
 
 export const getUser = (): AuthUser | null => {
@@ -18,7 +28,7 @@ export const getUser = (): AuthUser | null => {
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AuthUser;
+    return normalizeAuthUser(JSON.parse(raw) as AuthUser);
   } catch {
     return null;
   }

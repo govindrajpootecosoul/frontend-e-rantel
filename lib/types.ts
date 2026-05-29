@@ -15,13 +15,38 @@ export type FiltersState = Record<FilterKey, string>;
 
 export type FilterOptions = Record<FilterKey, string[]>;
 
+export type UserRole = 'user' | 'superadmin' | 'super_admin';
+
+export type ScreenId =
+  | 'executive'
+  | 'po_so_sps'
+  | 'po_so_costco'
+  | 'po_tracker_b2b'
+  | 'po_tracker_retails'
+  | 'stores_kehe'
+  | 'stores_sprouts'
+  | 'demand_planner';
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
   phone?: string;
-  role: string;
+  role: UserRole;
   status: string;
+  screenAccess: ScreenId[];
+}
+
+export interface ManagedUser extends AuthUser {
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ScreenGroupOption {
+  id: string;
+  label: string;
+  comingSoon?: boolean;
+  screens: { id: ScreenId; label: string }[];
 }
 
 export interface DashboardSummary {
